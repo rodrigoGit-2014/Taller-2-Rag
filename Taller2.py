@@ -19,7 +19,7 @@ Los documentos (PDF o TXT) se eligen desde la carpeta docs/. Las variables
 """
 # %%
 # ── 1. Preparar: las piezas de LangChain ──────────────────────────────────────
-import os, re, json, math, glob, hashlib
+import os, re, io, json, math, glob, hashlib, contextlib
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
@@ -695,16 +695,25 @@ def probar_umbral():
     filas = []
     for tipo in ("dentro", "fuera"):
         for i in range(1, 4):
-            pregunta = pedir_texto(f"Pregunta {i}/3 {tipo} del documento: ")
+            pregunta = pedir_texto(f"\nPregunta {i}/3 {tipo} del documento: ")
             docs = buscar(pregunta)
-            respuesta = rag_con_umbral.invoke(pregunta)
+            with contextlib.redirect_stdout(io.StringIO()):   # la linea de hay_evidencia se muestra abajo, alineada
+                respuesta = rag_con_umbral.invoke(pregunta)
             fila = {"pregunta": pregunta, "tipo": tipo,
                     "mejor_parecido": docs[0].metadata["parecido"] if docs else 0,
                     "resultado": "NO_SE" if respuesta.strip() == NO_SE else "Respondió",
                     "respuesta": respuesta}
-            print(fila)
+            evidencia = "hay evidencia" if fila["mejor_parecido"] >= UMBRAL else "sin evidencia"
+            print(f"\n══ Pregunta {i}/3 · {tipo} del documento: {pregunta}")
+            print(f"   Mejor parecido : {fila['mejor_parecido']:.4f}  (umbral {UMBRAL} → {evidencia})")
+            print(f"   Resultado      : {fila['resultado']}")
+            print("   Respuesta      :")
+            print("\n".join("      " + linea for linea in respuesta.strip().splitlines()))
             filas.append(fila)
             registrar(pregunta, respuesta, docs, modo="umbral")
+    print("\n#  | Dentro/fuera | Mejor parecido | Resultado | Pregunta")
+    for n, f in enumerate(filas, 1):
+        print(f"{n:<2} | {f['tipo']:<12} | {f['mejor_parecido']:<14.4f} | {f['resultado']:<9} | {f['pregunta']}")
     usado = UMBRAL
     while True:
         try:
