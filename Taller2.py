@@ -14,9 +14,8 @@ pero ahora lo construyes tu, con TU documento y TU prefijo en Redis:
   Celda 9   LangGraph: buscar -> hay evidencia? -> responder / no_se
   Celda 10  los ejercicios del taller (la rubrica esta en la documentacion)
 
-En la plataforma usa los PDFs de Archivos y las variables de la pestana Prompts
-(SYSTEM_PROMPT, PREFIJO, UMBRAL, TOP_K, ARCHIVOS) y la REDIS_URL de "API keys".
-En Jupyter (Descargar notebook) pide la API key y usa los PDFs junto al notebook.
+Los documentos (PDF o TXT) se eligen desde la carpeta docs/. Las variables
+(GOOGLE_API_KEY, REDIS_URL, SYSTEM_PROMPT, PREFIJO, UMBRAL, TOP_K, ARCHIVOS) se leen del archivo .env.
 """
 # %%
 # ── 1. Preparar: las piezas de LangChain ──────────────────────────────────────
@@ -112,18 +111,28 @@ import pypdf  # noqa: F401  (lo usa PyPDFLoader)
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-def rutas_pdf():
-    return [solicitar_archivo("PDF principal", ".pdf", ARCHIVOS)]
+CARPETA_DOCS = Path(__file__).resolve().parent / "docs"
 
-def solicitar_archivo(etiqueta, extension, predeterminado):
+def elegir_documento(etiqueta, extensiones, excluir=()):
+    """Lista los archivos de docs/ con esas extensiones y devuelve la ruta elegida por numero."""
+    disponibles = sorted((p for p in CARPETA_DOCS.glob("*")
+                          if p.is_file() and p.suffix.lower() in extensiones
+                          and str(p.resolve()) not in excluir), key=lambda p: p.name.lower())
+    tipos = " o ".join(e.lstrip(".").upper() for e in extensiones)
+    if not disponibles:
+        raise FileNotFoundError(f"No hay archivos {tipos} en {CARPETA_DOCS}. Copia ahí tus documentos y vuelve a ejecutar.")
+    print(f"\n{etiqueta} · archivos {tipos} en docs/:")
+    for n, p in enumerate(disponibles, 1):
+        print(f"  {n}. {p.name}")
+    nombres = [p.name for p in disponibles]
+    defecto = nombres.index(ARCHIVOS) + 1 if ARCHIVOS in nombres else (1 if len(disponibles) == 1 else None)
     while True:
-        valor = input(f"{etiqueta} [{predeterminado}]: ").strip().strip('\"') or predeterminado
-        ruta = Path(valor).expanduser()
-        if not ruta.is_absolute():
-            ruta = Path(__file__).resolve().parent / ruta
-        if ruta.is_file() and ruta.suffix.lower() == extension:
-            return str(ruta.resolve())
-        print(f"Indica un archivo {extension} existente.")
+        valor = input(f"Elige un número [{defecto}]: " if defecto else "Elige un número: ").strip()
+        if not valor and defecto:
+            valor = str(defecto)
+        if valor.isdigit() and 1 <= int(valor) <= len(disponibles):
+            return str(disponibles[int(valor) - 1].resolve())
+        print(f"Escribe un número entre 1 y {len(disponibles)}.")
 
 def si_no(pregunta):
     while True:
@@ -137,6 +146,15 @@ def pedir_texto(etiqueta):
         texto = input(etiqueta).strip()
         if texto:
             return texto
+
+def cargar_documento(ruta):
+    """PDF -> un Document por pagina; TXT -> un solo Document."""
+    if Path(ruta).suffix.lower() == ".txt":
+        texto = Path(ruta).read_text(encoding="utf-8-sig")
+        if not texto.strip():
+            raise ValueError("El documento TXT está vacío.")
+        return [Document(page_content=texto, metadata={"fuente": Path(ruta).name})]
+    return cargar_pdf(ruta)
 
 def cargar_pdf(ruta):
     paginas = PyPDFLoader(ruta).load()
@@ -302,11 +320,8 @@ rag_con_umbral = RunnableBranch(
 # ── 8. Otro documento: cualquier texto se vuelve Document y pasa por el MISMO splitter ──
 # EJERCICIO 5: reemplaza este texto por una politica de tu equipo y reindexa.
 def agregar_extra(indexar=True):
-    ruta = solicitar_archivo("Documento adicional TXT", ".txt", "otras_leyes.txt")
-    texto = Path(ruta).read_text(encoding="utf-8-sig")
-    if not texto.strip():
-        raise ValueError("El documento adicional está vacío.")
-    extra = Document(page_content=texto, metadata={"fuente": Path(ruta).name})
+    ruta = elegir_documento("Documento adicional", (".txt",), excluir=archivos_activos[:1])
+    extra = cargar_documento(ruta)[0]
     # Una nueva selección reemplaza el TXT anterior y conserva el PDF.
     anteriores = list(documentos_extra)
     documentos_extra[:] = [extra]
@@ -563,34 +578,91 @@ def comparar_metricas():
           "Sin normalización, las normas pueden cambiar el orden. Los empates usan el ID.")
     guardar_prueba("metricas", filas, normas_documentos=normas)
 
+def solape_real(anterior, actual):
+    """Caracteres del final del fragmento anterior que se repiten al inicio del actual."""
+    for k in range(min(len(anterior), len(actual)), 0, -1):
+        if anterior.endswith(actual[:k]):
+            return k
+    return 0
+
+def mostrar_fragmentos(cortes):
+    while True:
+        valor = input(f"¿Cuántos fragmentos quieres ver? (0 = ninguno, t = todos) [3]: ").strip().lower() or "3"
+        if valor in ("t", "todos"):
+            cantidad = len(cortes)
+            break
+        if valor.isdigit():
+            cantidad = min(int(valor), len(cortes))
+            break
+        print("Escribe un número o t.")
+    for i, d in enumerate(cortes[:cantidad]):
+        print(f"\n── F{i} · {d.metadata['fuente']} · {len(d.page_content)} caracteres ──")
+        if i and cortes[i - 1].metadata["fuente"] == d.metadata["fuente"]:
+            k = solape_real(cortes[i - 1].page_content, d.page_content)
+            print(f"   (solape real con F{i - 1}: {k} caracteres" + (f' → "{d.page_content[:k]}")' if k else
+                  ": el splitter solo repite oraciones completas que quepan en CHUNK_OVERLAP)"))
+        print(d.page_content)
+
+def pedir_combinacion(i, defecto):
+    while True:
+        try:
+            tamano = int(input(f"\nCombinación {i} · CHUNK_SIZE [{defecto[0]}]: ") or defecto[0])
+            solape = int(input(f"Combinación {i} · CHUNK_OVERLAP [{defecto[1]}]: ") or defecto[1])
+            return tamano, solape, crear_splitter(tamano, solape).split_documents(documentos)
+        except ValueError:
+            print("Introduce enteros con 0 <= solape < tamaño.")
+
+def imprimir_tabla(filas):
+    print("\n#  | CHUNK_SIZE | CHUNK_OVERLAP | Páginas | Fragmentos | Largo mín/prom/máx")
+    for i, f in enumerate(filas, 1):
+        print(f"{i:<2} | {f['tamano']:<10} | {f['solape']:<13} | {f['paginas']:<7} | {f['fragmentos']:<10} | "
+              f"{f['largo_min']}/{f['largo_promedio']}/{f['largo_max']}")
+
 def probar_fragmentacion():
+    """EJERCICIO 1: probar dos combinaciones, ver los fragmentos y decidir si se guarda en Redis.
+    Devuelve False solo si el usuario sale sin que exista un indice para su PREFIJO."""
     global CHUNK_SIZE, CHUNK_OVERLAP, splitter
-    filas = []
-    for i, defecto in enumerate(((500, 150), (800, 150)), 1):
-        while True:
-            try:
-                tamano = int(input(f"Combinación {i}: tamaño [{defecto[0]}]: ") or defecto[0])
-                solape = int(input(f"Combinación {i}: solape [{defecto[1]}]: ") or defecto[1])
-                cortes = crear_splitter(tamano, solape).split_documents(documentos)
-                break
-            except ValueError:
-                print("Introduce enteros con 0 <= solape < tamaño.")
-        fila = {"tamano": tamano, "solape": solape, "paginas": len(documentos), "fragmentos": len(cortes)}
-        filas.append(fila)
-        print(fila)
-    seleccion = pedir_texto("Combinación elegida [1/2]: ")
-    while seleccion not in ("1", "2"):
-        seleccion = pedir_texto("Escribe 1 o 2: ")
-    elegido = filas[int(seleccion) - 1]
-    anterior = CHUNK_SIZE, CHUNK_OVERLAP, splitter
-    CHUNK_SIZE, CHUNK_OVERLAP = elegido["tamano"], elegido["solape"]
-    splitter = crear_splitter(CHUNK_SIZE, CHUNK_OVERLAP)
-    try:
-        reindexar()
-    except Exception:
-        CHUNK_SIZE, CHUNK_OVERLAP, splitter = anterior
-        raise
-    guardar_prueba("fragmentacion_pdf", filas, elegida=seleccion)
+    print("\nEJERCICIO 1 · Tu documento: prueba dos combinaciones de CHUNK_SIZE / CHUNK_OVERLAP.")
+    print(f"Documento: {', '.join(Path(r).name for r in archivos_activos[:1])} · {len(documentos)} página(s).")
+    while True:
+        filas = []
+        for i, defecto in enumerate(((500, 150), (800, 150)), 1):
+            tamano, solape, cortes = pedir_combinacion(i, defecto)
+            largos = [len(d.page_content) for d in cortes] or [0]
+            fila = {"tamano": tamano, "solape": solape, "paginas": len(documentos), "fragmentos": len(cortes),
+                    "largo_min": min(largos), "largo_promedio": round(sum(largos) / len(largos)),
+                    "largo_max": max(largos)}
+            filas.append(fila)
+            print(f"→ {len(documentos)} página(s) → {len(cortes)} fragmentos")
+            mostrar_fragmentos(cortes)
+        imprimir_tabla(filas)
+        existentes = R.scard(f"{PREFIJO}:fragmentos")
+        print("\n¿Qué quieres hacer?"
+              "\n  1 · Guardar en Redis con la combinación 1"
+              "\n  2 · Guardar en Redis con la combinación 2"
+              "\n  r · Repetir el ejercicio con otras combinaciones"
+              + (f"\n  n · No guardar: seguir con el índice actual de '{PREFIJO}' ({existentes} fragmentos)"
+                 if existentes else "\n  n · No guardar y salir (no hay índice previo para este prefijo)"))
+        opcion = pedir_texto("Opción: ").lower()
+        while opcion not in ("1", "2", "r", "n"):
+            opcion = pedir_texto("Escribe 1, 2, r o n: ").lower()
+        if opcion == "r":
+            continue
+        if opcion == "n":
+            guardar_prueba("fragmentacion_pdf", filas, elegida=None)
+            return bool(existentes)
+        elegido = filas[int(opcion) - 1]
+        anterior = CHUNK_SIZE, CHUNK_OVERLAP, splitter
+        CHUNK_SIZE, CHUNK_OVERLAP = elegido["tamano"], elegido["solape"]
+        splitter = crear_splitter(CHUNK_SIZE, CHUNK_OVERLAP)
+        try:
+            reindexar()
+        except Exception:
+            CHUNK_SIZE, CHUNK_OVERLAP, splitter = anterior
+            raise
+        guardar_prueba("fragmentacion_pdf", filas, elegida=opcion)
+        print("Anota en la tabla del ejercicio 1 qué observas y por qué eliges esta combinación.")
+        return True
 
 def probar_prompt():
     filas = []
@@ -690,20 +762,40 @@ def ofrecer_extra():
         if preguntas_metricas and si_no("¿Comparar nuevamente las tres métricas?"):
             comparar_metricas()
 
+INTRO = """
+══════════════════════════════════════════════════════════════════════
+  TALLER 2 · Tu propio RAG paso a paso (LangChain + Redis + LangGraph)
+══════════════════════════════════════════════════════════════════════
+Este es un taller para poner en práctica tus conocimientos de RAG
+(Retrieval-Augmented Generation): en lugar de responder "de memoria",
+el modelo responde usando SOLO lo que encuentra en tus documentos.
+
+Para eso necesito que elijas un documento a procesar. Con él haremos:
+  1. Cargarlo y cortarlo en fragmentos (chunks).
+  2. Convertir cada fragmento en un vector (embedding) con Gemini
+     y guardarlo en Redis bajo el prefijo de tu equipo.
+  3. Buscar los fragmentos más parecidos a cada pregunta.
+  4. Responder con citas a la fuente, o decir "no sé" si no hay evidencia.
+
+Los documentos se leen desde la carpeta docs/ (PDF o TXT). Si quieres
+usar uno propio, cópialo ahí y vuelve a ejecutar el programa.
+"""
+
 def main():
     global llm, emb, R, PREFIJO
-    print("Taller 2 · Consultas y pruebas interactivas")
+    print(INTRO)
     faltantes = [v for v in ("GOOGLE_API_KEY", "REDIS_URL") if not os.environ.get(v, "").strip()]
     if faltantes:
         print("Faltan variables de entorno:", ", ".join(faltantes),
               "\nCopia .env.example a .env y complétalas.")
         raise ValueError("Faltan credenciales.")
     url = os.environ["REDIS_URL"].strip()
-    ruta = rutas_pdf()[0]
-    documentos[:] = cargar_pdf(ruta)
+    ruta = elegir_documento("Documento principal", (".pdf", ".txt"))
+    documentos[:] = cargar_documento(ruta)
     archivos_activos[:] = [ruta]
-    print(len(documentos), "páginas cargadas.")
-    if si_no("¿Agregar un documento TXT ahora?"):
+    print(f"{Path(ruta).name}: {len(documentos)} página(s) cargada(s).")
+    otros_txt = [p for p in CARPETA_DOCS.glob("*.txt") if str(p.resolve()) != ruta]
+    if otros_txt and si_no("¿Agregar también un documento TXT adicional ahora?"):
         agregar_extra(indexar=False)
     while True:
         PREFIJO = input(f"Prefijo único de tu equipo en Redis [{PREFIJO}]: ").strip() or PREFIJO
@@ -715,10 +807,13 @@ def main():
     mostrar_historial()
     llm = ChatGoogleGenerativeAI(model=MODELO_LLM)
     emb = GoogleGenerativeAIEmbeddings(model=MODELO_EMB)
-    reindexar()
+    if not probar_fragmentacion():
+        print("Sin índice en Redis no se pueden hacer los demás ejercicios. Hasta pronto.")
+        R.close()
+        return
     while True:
         print("\n=== EJERCICIOS DEL TALLER 2 ==="
-              "\n1 · Tu documento: comparar dos tamaños y solapes y elegir"
+              "\n1 · Tu documento: repetir la prueba de tamaños y solapes y reindexar"
               "\n2 · Buscar: cinco preguntas y top-3 con las tres métricas"
               "\n3 · System prompt: tres preguntas antes/después y nuevas citas"
               "\n4 · Umbral: tres preguntas dentro y tres fuera y elegir umbral"
@@ -743,6 +838,8 @@ def main():
                 if not si_no("¿Continuar con otra ronda de pruebas o consultas?"):
                     break
             else: print("Elige una opción del menú.")
+        except FileNotFoundError as error:
+            print(error)
         except Exception as error:
             print(f"La operación falló ({type(error).__name__}). Revisa conexión, cuota y configuración antes de reintentar.")
     R.close()
@@ -752,6 +849,9 @@ if __name__ == "__main__":
         main()
     except (EOFError, KeyboardInterrupt):
         print("\nSesión finalizada.")
+    except FileNotFoundError as error:
+        print(error)
+        raise SystemExit(1)
     except Exception as error:
         print(f"No se pudo iniciar ({type(error).__name__}). Revisa archivos, credenciales, modelo y conexión.")
         raise SystemExit(1)

@@ -16,3 +16,6 @@ resultados_taller2.json
 .DS_Store
 .vscode/
 .idea/
+
+# Documentos PDF (no se suben al repositorio)
+*.pdf

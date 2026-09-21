@@ -33,11 +33,13 @@ Las demás variables de `.env.example` son opcionales. Si falta alguna de las ob
 
 ## Ejecución
 
-Deja tu PDF (y el TXT opcional) junto a `Taller2.py` y ejecuta:
+Copia tus documentos (PDF o TXT) en la carpeta `docs/` y ejecuta:
 
 ```bash
 uv run Taller2.py
 ```
+
+El programa lista los archivos de `docs/` y te pide elegir por número el documento principal y, opcionalmente, un TXT adicional (ejercicio 5). Si defines `ARCHIVOS` en `.env` con el nombre de un archivo de `docs/`, ese queda como opción por defecto.
 
 ## Sin uv
 
