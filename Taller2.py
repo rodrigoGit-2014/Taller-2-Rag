@@ -32,6 +32,9 @@ from langchain_core.documents import Document                  # texto + metadat
 from langchain_core.prompts import ChatPromptTemplate          # system prompt + user prompt con huecos
 from langchain_core.output_parsers import StrOutputParser      # deja solo el texto de la respuesta
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough, RunnableBranch   # piezas de LCEL
+import logging
+# Silencia el aviso tecnico de google-genai sobre "automatic function calling (AFC)"; no afecta las respuestas.
+logging.getLogger("google_genai.models").setLevel(logging.ERROR)
 
 MODELO_LLM = os.environ.get("MODELO_LLM", "gemini-3.5-flash-lite")
 MODELO_EMB = os.environ.get("MODELO_EMB", "models/gemini-embedding-001")
@@ -669,16 +672,20 @@ def probar_fragmentacion():
 
 def probar_prompt():
     filas = []
+    titulos = {"antes": "ANTES · system prompt original",
+               "despues": "DESPUÉS · system prompt con regla 5 y nuevo formato de cita"}
     for tipo in ("normal", "cuya respuesta sea no", "fuera del documento"):
-        pregunta = pedir_texto(f"Pregunta {tipo}: ")
+        pregunta = pedir_texto(f"\nPregunta {tipo}: ")
         docs = buscar(pregunta)
         fila = {"pregunta": pregunta, "tipo": tipo}
+        print(f"\n══ Pregunta ({tipo}): {pregunta}")
         for nombre, sistema in (("antes", SYSTEM_PROMPT_ANTES), ("despues", SYSTEM_PROMPT)):
             plantilla = ChatPromptTemplate.from_messages([("system", sistema), ("human", USER_PROMPT)])
             respuesta = StrOutputParser().invoke(llm.invoke(plantilla.invoke(
                 {"contexto": formatear(docs), "pregunta": pregunta})))
             fila[nombre] = respuesta
-            print(nombre.upper(), respuesta)
+            print(f"\n── {titulos[nombre]} ──")
+            print("\n".join("   " + linea for linea in respuesta.strip().splitlines()))
             registrar(pregunta, respuesta, docs, modo="prompt_" + nombre)
         filas.append(fila)
     guardar_prueba("prompt", filas, prompt_antes=SYSTEM_PROMPT_ANTES, prompt_despues=SYSTEM_PROMPT)
