@@ -557,6 +557,8 @@ def comparar_metricas():
     filas = []
     normas = [math.sqrt(producto_punto(v, v)) for _, _, v in registros]
     print("Normas de documentos (mín/máx):", min(normas), max(normas))
+    print("Nota: los extractos se muestran recortados a 100 caracteres (…) solo como vista previa; "
+          "en Redis y en el contexto que recibe el modelo cada fragmento está completo.")
     for pregunta in preguntas_metricas:
         vector = emb.embed_query(pregunta)
         fila = {"pregunta": pregunta, "norma_pregunta": math.sqrt(producto_punto(vector, vector))}
@@ -566,7 +568,8 @@ def comparar_metricas():
             fila[metrica] = [{**d.metadata, "extracto": d.page_content[:160]} for d in top]
             print(metrica)
             for d in top:
-                print(f"  F{d.metadata['id']} | {d.metadata['parecido']:.6f} | {d.metadata['fuente']} | {d.page_content[:100]}")
+                print(f"  F{d.metadata['id']} | {d.metadata['parecido']:.6f} | {d.metadata['fuente']} | {d.page_content[:100]}"
+                      + ("…" if len(d.page_content) > 100 else ""))
         ordenes = [[d["id"] for d in fila[m]] for m in ("coseno", "producto_punto", "euclidea")]
         fila["mismo_orden"] = ordenes[0] == ordenes[1] == ordenes[2]
         filas.append(fila)
