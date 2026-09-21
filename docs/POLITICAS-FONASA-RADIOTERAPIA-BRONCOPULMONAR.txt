@@ -1,0 +1,62 @@
+POLÍTICAS DE ATENCIÓN CON FONASA
+Radioterapia y Consulta Broncopulmonar · Anexo al Reglamento Interno
+
+Documento de ejemplo elaborado para el Taller 2 (RAG). Su contenido es ficticio, fue redactado con fines educativos y no corresponde a una política oficial de ninguna institución de salud.
+
+Este anexo establece las condiciones de atención para pacientes beneficiarios de FONASA en dos servicios: la Unidad de Radioterapia, que cuenta con convenio con FONASA, y la consulta ambulatoria de Broncopulmonar, que no atiende por FONASA. Ambas políticas rigen a partir del 1 de octubre de 2026.
+
+POLÍTICA 1 · RADIOTERAPIA CON CONVENIO FONASA
+
+1.1 Alcance
+La Unidad de Radioterapia de la sede Estoril mantiene un convenio vigente con FONASA. Los pacientes beneficiarios de FONASA de los tramos B, C y D pueden realizar su tratamiento de radioterapia en la clínica pagando solo el copago que corresponda según su tramo. Los pacientes del tramo A deben ser derivados a través de la red pública de salud.
+
+1.2 Prestaciones de radioterapia cubiertas por el convenio FONASA
+- Consulta de evaluación con médico radioterapeuta.
+- Planificación del tratamiento (simulación con tomografía y cálculo de dosis).
+- Radioterapia externa convencional y radioterapia conformada 3D.
+- Controles médicos semanales durante el tratamiento y un control al finalizar.
+
+1.3 Prestaciones de radioterapia no cubiertas por el convenio FONASA
+- Radiocirugía estereotáctica y tratamientos con técnicas de intensidad modulada (IMRT), salvo autorización expresa de FONASA.
+- Tratamientos experimentales o incluidos en protocolos de investigación.
+- Hospitalización asociada a complicaciones, que se rige por las normas generales del Reglamento Interno.
+
+1.4 Documentos que el paciente FONASA debe presentar para radioterapia
+- Cédula de identidad vigente.
+- Certificado de afiliación a FONASA vigente, que indique el tramo.
+- Orden médica de radioterapia emitida por el médico tratante.
+- Informe de biopsia o informe del comité oncológico que respalde el diagnóstico.
+
+1.5 Agendamiento, plazos y copago de radioterapia
+- Cómo agendar: call center de Radioterapia o de forma presencial en la Unidad de Radioterapia, de lunes a viernes de 8:00 a 18:00 horas.
+- Primera evaluación: dentro de 5 días hábiles desde que se presenta la documentación completa.
+- Inicio del tratamiento: dentro de 10 días hábiles desde la planificación.
+- Copago: se paga por cada ciclo de tratamiento, antes de iniciarlo. El valor depende del tramo FONASA y se informa por escrito en el presupuesto.
+- Sesiones perdidas: si el paciente falta a 3 sesiones seguidas sin aviso, el tratamiento se suspende y debe reagendarse con el médico radioterapeuta.
+
+POLÍTICA 2 · CONSULTA BRONCOPULMONAR SIN ATENCIÓN FONASA
+
+2.1 Regla general
+La consulta ambulatoria de Broncopulmonar (enfermedades respiratorias del adulto e infantil) no atiende por FONASA. No se venden bonos FONASA ni bonos electrónicos IMED de FONASA para esta especialidad, en ninguna de las sedes (Estoril, Chicureo y Peñalolén).
+
+2.2 Formas de atención disponibles en Broncopulmonar
+- Particular: el paciente paga el valor total de la consulta según el arancel vigente.
+- ISAPRE: se atiende con bono de la ISAPRE del paciente, de acuerdo con su plan de salud.
+- Seguros complementarios: el paciente paga la consulta y luego solicita el reembolso directamente a su aseguradora.
+
+2.3 Exámenes respiratorios
+Los exámenes de función pulmonar solicitados en la consulta Broncopulmonar (espirometría, test de difusión, test de marcha de 6 minutos y polisomnografía) tampoco se realizan con bono FONASA. Se pagan de forma particular o con cobertura ISAPRE.
+
+2.4 Excepciones a la regla de Broncopulmonar
+- Urgencia con riesgo vital: si un paciente FONASA consulta en el Servicio de Urgencia por un problema respiratorio con riesgo vital o de secuela funcional grave, se aplica la Ley de Urgencia y será atendido sin condicionar la atención al pago.
+- Pacientes hospitalizados: si un paciente FONASA hospitalizado necesita una evaluación broncopulmonar, esta se realiza como interconsulta y se incluye en la cuenta de hospitalización.
+- Pacientes de Radioterapia: los pacientes FONASA en tratamiento de radioterapia de tórax pueden recibir una interconsulta broncopulmonar incluida en su convenio de radioterapia (ver Política 1).
+
+2.5 Información al paciente FONASA que solicita consulta Broncopulmonar
+Al momento de agendar, el call center debe informar al paciente FONASA que la consulta Broncopulmonar no tiene cobertura FONASA y ofrecerle las alternativas de atención particular o ISAPRE. Si el paciente no puede costear la atención, se le orientará para solicitar hora en su consultorio o CESFAM, desde donde podrá ser derivado a un especialista de la red pública. La clínica no reembolsa consultas Broncopulmonares pagadas de forma particular por pacientes FONASA.
+
+RESUMEN: ¿QUÉ SERVICIOS ATIENDEN POR FONASA?
+- Radioterapia: sí, con convenio para los tramos B, C y D. El paciente paga solo el copago de su tramo.
+- Consulta Broncopulmonar: no. Solo particular, ISAPRE o seguro complementario.
+- Exámenes de función pulmonar: no. Solo particular o ISAPRE.
+- Urgencia respiratoria con riesgo vital: sí. Se aplica la Ley de Urgencia.

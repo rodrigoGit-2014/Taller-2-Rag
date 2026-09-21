@@ -19,3 +19,4 @@ resultados_taller2.json
 
 # Documentos PDF (no se suben al repositorio)
 *.pdf
+!docs/REGLAMENTO-INTERNO-CLC-2025.pdf
